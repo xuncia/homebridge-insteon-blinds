@@ -1,8 +1,10 @@
-# homebridge-blinds
+# homebridge-insteon-blinds
 
-`homebridge-blinds` is a plugin for Homebridge.
+`homebridge-insteon-blinds` is a plugin for Homebridge.
 
-Control your `http`-based blinds via Homebridge!
+Control your `http`-based insteon blinds via Homebridge!
+
+The difference from the original fork is that in this version is checked the buffer in insteon hub and retrieve the current position of the instoen blinds (micromodule open/Close)
 
 ## Installation
 
@@ -15,7 +17,7 @@ sudo npm install -g homebridge
 ```
 Install homebridge-blinds:
 ```sh
-sudo npm install -g homebridge-blinds
+sudo npm install -g homebridge--insteon-blinds
 ```
 
 ## Configuration
@@ -29,11 +31,13 @@ Add the accessory in `config.json` in your home directory inside `.homebridge`.
       "up_url": "http://1.2.3.4/window/up",
       "down_url": "http://1.2.3.4/window/down",
       "stop_url": "http://1.2.3.4/window/stop",
+      "last_url":"1.2.3.4:25105/3?0262XXXXXX0F1900=I=3",
       "motion_time": "<time your blind needs to move from up to down (in milliseconds)>",
       "http_method": "PUT",
       "trigger_stop_at_boundaries": false
     }
 ```
+last_url is the request to the hub insteon that is writing in the buffstatus the currentposition.(is correct without the http)
 
 You can omit `http_method`, it defaults to `POST`.
 
