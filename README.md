@@ -38,6 +38,8 @@ Add the accessory in `config.json` in your home directory inside `.homebridge`.
     }
 ```
 last_url is the request to the hub insteon that is writing in the buffstatus the currentposition.(is correct without the http)
+inside the index.js you need to change at row 170 and 172 the user and password for your insteon hub.
+
 
 You can omit `http_method`, it defaults to `POST`.
 
