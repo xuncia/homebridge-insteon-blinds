@@ -1,5 +1,5 @@
 var request = require("sync-request");
-var request_1 = require("request");
+
 var Service, Characteristic;
 
 
