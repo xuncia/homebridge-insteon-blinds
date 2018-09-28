@@ -1,5 +1,7 @@
-var request = require('sync-request');
+var request = require("sync-request");
+var request_1 = require("request");
 var Service, Characteristic;
+
 
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
@@ -11,14 +13,13 @@ module.exports = function(homebridge) {
 function BlindsHTTPAccessory(log, config) {
     // global vars
     this.log = log;
-    
 
     // configuration vars
     this.name = config["name"];
     this.upURL = config["up_url"];
     this.downURL = config["down_url"];
     this.stopURL = config["stop_url"];
-    this.lastURL = config["last_url"];//  work in progress LG
+    this.lastURL = config["last_url"];// aggiunto work in progress LG
     this.stopAtBoundaries = config["trigger_stop_at_boundaries"];
     this.httpMethod = config["http_method"] || "POST";
     this.motionTime = config["motion_time"];
@@ -26,10 +27,10 @@ function BlindsHTTPAccessory(log, config) {
     // state vars
     this.interval = null;
     this.timeout = null;
-    this.lastPosition = posizione(this.lastURL); // 0 last known position of the blinds, down by default
-    console.log('last position '+ this.lastPosition + ' url contattato' + this.lastURL);
-    this.currentPositionState = 2;//posizione(this.lastURL);//2; // stopped by default
-    this.currentTargetPosition =  this.lastPosition;//posizione(this.lastURL);//down by default
+    this.lastPosition = this.posizione_new(this.lastURL); // last known position of the blinds, down by default
+   // console.log('last position'+ this.lastPosition)
+    this.currentPositionState = 2; // stopped by default
+    this.currentTargetPosition = this.lastPosition; // down by default
 
     // register the service and provide the functions
     this.service = new Service.WindowCovering(this.name);
@@ -56,11 +57,10 @@ function BlindsHTTPAccessory(log, config) {
 }
 
 BlindsHTTPAccessory.prototype.getCurrentPosition = function(callback) {
-    
-    this.log("Requested CurrentPosition: %s", this.lastPosition);
-    callback(null, this.lastPosition);
-   
-  }
+    CP = this.posizione_new(this.lastURL);
+    this.log("Requested CurrentPosition: %s", CP);//this.lastPosition);    
+    callback(null, CP);//posizione_new(this.lastURL));//this.lastPosition);
+}
 
 BlindsHTTPAccessory.prototype.getPositionState = function(callback) {
     this.log("Requested PositionState: %s", this.currentPositionState);
@@ -68,22 +68,20 @@ BlindsHTTPAccessory.prototype.getPositionState = function(callback) {
 }
 
 BlindsHTTPAccessory.prototype.getTargetPosition = function(callback) {
-    
-    this.log("Requested TargetPosition: %s", this.currentTargetPosition);
-    callback(null, this.currentTargetPosition);
+    //TP = this.posizione_new(this.lastURL);
+    this.log("Requested TargetPosition: %s", CP);//this.currentTargetPosition);
+    callback(null, CP);//this.posizione_new(this.lastURL));//this.currentTargetPosition);
 }
 
 BlindsHTTPAccessory.prototype.setTargetPosition = function(pos, callback) {
     this.log("Set TargetPosition: %s", pos);
     this.currentTargetPosition = pos;
-    console.log("posizione desiderata =" + this.currentTargetPosition);
-    console.log("ultima posizione = " + this.lastPosition);
-    if( (this.currentTargetPosition == this.lastPosition/*posizione(this.lastURL)*/)) {
+    if (this.currentTargetPosition == this.lastPosition) {
         if (this.interval != null) clearInterval(this.interval);
         if (this.timeout != null) clearTimeout(this.timeout);
         this.httpRequest(this.stopURL, this.httpMethod, function() {
             this.log("Already here");
-        }.bind(this));  
+        }.bind(this));
         callback(null);
         return;
     }
@@ -92,12 +90,9 @@ BlindsHTTPAccessory.prototype.setTargetPosition = function(pos, callback) {
 
     this.service
         .setCharacteristic(Characteristic.PositionState, (moveUp ? 1 : 0));
-        console.log("Aspetto 1 secondo e mando la richiesta")
-        wait(1000);
-    this.httpRequest((moveUp ? this.upURL : this.downURL), this.httpMethod, function() {
-        
+    this.httpRequest( (moveUp ? this.upURL : this.downURL),this.httpMethod, function() {
         this.log(
-            "Success moving %s" + moveUp,
+            "Success moving %s",
             (moveUp ? "up (to " + pos + ")" : "down (to " + pos + ")")
         );
         this.service
@@ -141,56 +136,46 @@ BlindsHTTPAccessory.prototype.setTargetPosition = function(pos, callback) {
     callback(null);
 }
 
-BlindsHTTPAccessory.prototype.httpRequest = function(url, method, callback) {
-    console.log("Mando la richiesta all'hub insteon - sono in httpRequest ");
-    console.log(url)
-    request(
-        method,
-        url,
-     function(err, response, body) {
-        if (!err && response && response.statusCode == 200) {
-            console.log("sono nell'if di httprequest");
-            callback(null);
+BlindsHTTPAccessory.prototype.httpRequest = function(url,method, callback)  {
 
-            return;
-        } else {console.log("sono nell'else di httprequest");
-            this.log(
-                
-                "Error getting state (status code %s): %s",
-                (response ? response.statusCode : "not defined"),
-                err
-            );
-            callback(err);
-        }
-    }.bind(this));
-    return;
+    var res2 = request(method,url);
+    var risposta = res2.statusCode;
+    console.log("chiamata "+risposta)
+    wait(1000)
+    if (res2 && res2.statusCode == 200) {
+        console.log("sono nell'if della request response: ");
+        
+        callback(null);
+    } else {
+        this.log(
+            "Error getting state (status code %s): %s",
+            (res2 ? res2.statusCode : "not defined"),
+            err
+        );
+        callback(err);
+    }
 }
-function posizione(indirizzo){
-    //console.log(indirizzo);
-request('POST','http://xxxx:xxxxxx@'+ indirizzo);
-wait(200);
-var res = request('POST', 'http://xxxxx:xxxxxxxx@192.168.1.108:25105/buffstatus.xml');
 
+BlindsHTTPAccessory.prototype.posizione_new = function (indirizzo){
+    this.log(indirizzo);
+var res = request('POST','http://bathub:BruceWayne@'+ indirizzo);
 var stato = res.getBody('utf8');
-console.log(res.getBody('utf8'));
-return RecuperoStato(stato);
-function RecuperoStato(stato){
     
-    console.log("risultato: " + stato.substring(52,54));
-    if (stato.substring(52,54)== 'FF')
+    this.log("Posizione: " + stato.substring(69,71) +" FF->Open - 00->Closed");
+    if (stato.substring(69,71)== 'FF')
     {
-        console.log("sono in if "+" "+ stato.substring(52,54));
+       //console.log("Value: " + stato.substring(69,71));
         return 100;
     }
     else
     {
-        console.log("sono in  else " +" "+ stato.substring(52,54));
+        //console.log("Value "+ stato.substring(69,71));
         return 0;
     }
     
     
 }
-}
+
 function wait(ms){
     var start = new Date().getTime();
     var end = start;
@@ -201,3 +186,4 @@ function wait(ms){
 BlindsHTTPAccessory.prototype.getServices = function() {
     return [this.service];
 }
+
